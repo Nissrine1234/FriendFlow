@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('notifications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('utilisateur_id')->constrained('utilisateurs')->onDelete('cascade');
-            $table->enum('type', ['nouvelle_invitation', 'aimer_la_publication', "accepter_ou_refuser_l'invitation", 'nouveau_message']);
+            $table->enum('type', ['nouvelle_invitation', 'aimer_la_publication', "accepter_ou_refuser_l_invitation", 'nouveau_message']);
             $table->string('contenu');
             $table->boolean('est_lue')->default(false);
             $table->timestamps();
