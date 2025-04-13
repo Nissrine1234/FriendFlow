@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Models\Utilisateur; // Utilisation du modèle Utilisateur
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -15,97 +16,106 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
-        \Log::info('Données reçues pour inscription', $request->all());
-
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email|unique:users,email',
-            'nomUtilisateur' => 'required|string|max:255|unique:users,nomUtilisateur',
-            'mot_de_passe' => 'required|string|min:6',
+            'email' => 'required|email|unique:utilisateurs,email',
+            'nomUtilisateur' => 'required|string|max:255|unique:utilisateurs,nomUtilisateur',
+            'date_de_naissance' => 'required|date|before:today', // Validation de date
+            'mot_de_passe' => 'required|string|min:8|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/',
+            // photo_profil est nullable donc non obligatoire
+            // statut a une valeur par défaut donc non obligatoire
+        ], [
+            'mot_de_passe.regex' => 'Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial',
+            'date_de_naissance.before' => 'La date de naissance doit être antérieure à aujourd\'hui'
         ]);
-
+    
         if ($validator->fails()) {
-            \Log::warning('Échec de validation', $validator->errors()->toArray());
             return response()->json([
                 'message' => 'Validation échouée',
-                'errors' => $validator->errors(),
-            ], 400);
+                'errors' => $validator->errors()
+            ], 422);
         }
-
-        $password = trim($request->mot_de_passe);
-        $hashedPassword = Hash::make($password);
-
-        \Log::info('Mot de passe hashé : ' . $hashedPassword);
-
-        $user = User::create([
+    
+        $user = Utilisateur::create([
             'email' => $request->email,
             'nomUtilisateur' => $request->nomUtilisateur,
-            'mot_de_passe' => $hashedPassword,
+            'date_de_naissance' => $request->date_de_naissance,
+            'mot_de_passe' => Hash::make($request->mot_de_passe),
+            // photo_profil peut être ajouté plus tard
+            // statut prendra la valeur par défaut 'offline'
         ]);
-
-        \Log::info('Utilisateur créé', ['user_id' => $user->id]);
-
-        return response()->json(['message' => 'Inscription réussie', 'user' => $user], 201);
+    
+        return response()->json([
+            'message' => 'Inscription réussie',
+            'user' => $user
+        ], 201);
     }
+/**
+ * Connexion d'un utilisateur
+ */
+public function login(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'identifiant' => 'required',
+        'mot_de_passe' => 'required'
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'message' => 'Validation failed',
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    $user = Utilisateur::where('email', $request->identifiant)
+              ->orWhere('nomUtilisateur', $request->identifiant)
+              ->first();
+
+    if (!$user) {
+        Log::warning('User not found', ['identifiant' => $request->identifiant]);
+        return response()->json(['message' => 'Invalid credentials'], 401);
+    }
+
+    if (!Hash::check($request->mot_de_passe, $user->mot_de_passe)) {
+        Log::warning('Password mismatch', ['user_id' => $user->id]);
+        return response()->json(['message' => 'Invalid credentials'], 401);
+    }
+
+    try {
+        // Supprime les anciens tokens
+        $user->tokens()->delete();
+        
+        // Crée un nouveau token
+        $token = $user->createToken('auth_token')->plainTextToken;
+        
+        return response()->json([
+            'message' => 'Login successful',
+            'token' => $token,
+            'user' => $user->makeHidden(['mot_de_passe', 'created_at', 'updated_at'])
+        ], 200);
+
+    } catch (\Exception $e) {
+        Log::error('Token creation failed', [
+            'error' => $e->getMessage(),
+            'stack' => $e->getTraceAsString(),
+            'user_id' => $user->id
+        ]);
+        
+        return response()->json([
+            'message' => 'Authentication error',
+            'debug' => config('app.debug') ? $e->getMessage() : null
+        ], 500);
+    }
+}
 
     /**
-     * Connexion d'un utilisateur (email ou nomUtilisateur)
-     */
-    public function login(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'identifiant' => 'required', // peut être email ou nomUtilisateur
-                'mot_de_passe' => 'required'
-            ]);
-
-            if ($validator->fails()) {
-                \Log::warning('Validation échouée', ['errors' => $validator->errors()]);
-                return response()->json(['message' => 'Champs invalides', 'errors' => $validator->errors()], 400);
-            }
-
-            // Recherche utilisateur par email ou nomUtilisateur
-            $user = User::where('email', $request->identifiant)
-                        ->orWhere('nomUtilisateur', $request->identifiant)
-                        ->first();
-
-            if (!$user || !Hash::check($request->mot_de_passe, $user->mot_de_passe)) {
-                \Log::warning('Échec de connexion', ['identifiant' => $request->identifiant]);
-                return response()->json(['message' => 'Identifiants incorrects'], 401);
-            }
-
-            \Log::info('Connexion réussie', ['user_id' => $user->id]);
-
-            // Générer un token si tu utilises Laravel Sanctum ou Passport
-            $token = $user->createToken('friendflow_token')->plainTextToken;
-
-            return response()->json([
-                'message' => 'Connexion réussie',
-                'user' => $user,
-                'token' => $token
-            ], 200);
-
-        } catch (\Exception $e) {
-            \Log::error('Erreur lors de la connexion', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return response()->json([
-                'message' => 'Erreur serveur',
-                'debug' => env('APP_DEBUG', false) ? $e->getMessage() : null
-            ], 500);
-        }
-    }
-        /**
-     * Déconnexion de l'utilisateur
+     * Déconnexion
      */
     public function logout(Request $request)
     {
-        if ($request->user()) {
-            $request->user()->tokens()->delete();
-            return response()->json(['message' => 'Déconnexion réussie'], 200);
-        }
-    
-        return response()->json(['message' => 'Aucun utilisateur authentifié'], 401);
+        $request->user()->currentAccessToken()->delete();
+        
+        return response()->json([
+            'message' => 'Déconnexion réussie'
+        ], 200);
     }
 }
