@@ -11,7 +11,7 @@ class PostController extends Controller
 {
     public function index()
     {
-        $publications = Publication::with('utilisateur')->latest()->paginate(10); // tu peux ajuster la pagination
+        $publications =Publication::with(['utilisateur'])->withCount('likes')->latest()->get();
         return response()->json($publications);
     }
 
@@ -71,40 +71,39 @@ class PostController extends Controller
 
         return response()->json(['message' => 'Publication supprimée']);
     }
+
+    
     public function like($id)
     {
         $user = Auth::user();
-        
-        // Vérifie si la publication existe
-        $publication = Publication::find($id);
-        if (!$publication) {
-            return response()->json(['message' => 'Publication non trouvée'], 404);
-        }
+        $publication = Publication::findOrFail($id);
     
-        // Vérifie si l'utilisateur a déjà liké cette publication
         $like = Like::where('utilisateur_id', $user->id)
                     ->where('publication_id', $id)
                     ->first();
     
         if ($like) {
-            // Si oui, on enlève le like (unlike)
             $like->delete();
-            return response()->json([
-                'message' => 'Like retiré.',
-                'liked' => false,
-                'likes_count' => $publication->likes()->count()
-            ]);
+            $message = 'Like retiré';
+            $liked = false;
         } else {
-            // Sinon, on ajoute un nouveau like
             Like::create([
                 'utilisateur_id' => $user->id,
                 'publication_id' => $id,
             ]);
-            return response()->json([
-                'message' => 'Like ajouté.',
-                'liked' => true,
-                'likes_count' => $publication->likes()->count()
-            ]);
+            $message = 'Like ajouté';
+            $liked = true;
         }
+    
+        // Mettre à jour le compteur en comptant réellement les likes
+        $likesCount = Like::where('publication_id', $id)->count();
+        $publication->likes = $likesCount;
+        $publication->save();
+    
+        return response()->json([
+            'message' => $message,
+            'liked' => $liked,
+            'likes_count' => $publication->likes
+        ]);
     }
 }

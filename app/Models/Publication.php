@@ -10,6 +10,7 @@ class Publication extends Model
     use HasFactory;
 
     protected $table = 'publications';
+    protected $appends = ['likes_count'];
 
     protected $fillable = [
         'utilisateur_id',
@@ -26,6 +27,11 @@ class Publication extends Model
     public function likes()
     {
         return $this->hasMany(Like::class);
+    }
+    // Pour obtenir le nombre de likes
+    public function getLikesCountAttribute()
+    {
+        return $this->likes()->count();
     }
 
     public function utilisateurs_ayant_aime()
