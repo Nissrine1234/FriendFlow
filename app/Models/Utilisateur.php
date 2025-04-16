@@ -18,6 +18,7 @@ class Utilisateur extends Authenticatable
         'email',
         'date_de_naissance',
         'mot_de_passe',
+        'genre',
         'photo_profil',
         'statut',
     ];
@@ -39,4 +40,15 @@ class Utilisateur extends Authenticatable
     {
         return $this->mot_de_passe;
     }
+
+    public function likes()
+    {
+        return $this->hasMany(Like::class);
+    }
+
+    public function publications_aimees()
+    {
+        return $this->belongsToMany(Publication::class, 'likes', 'utilisateur_id', 'publication_id');
+    }
+
 }
