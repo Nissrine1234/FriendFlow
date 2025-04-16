@@ -21,7 +21,7 @@ class AuthController extends Controller
             'nomUtilisateur' => 'required|string|max:255|unique:utilisateurs,nomUtilisateur',
             'date_de_naissance' => 'required|date|before:-18 years', // Validation de date
             'genre' => 'required|in:Homme,Femme',
-            'mot_de_passe' => 'required|string|min:8|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/',
+            'mot_de_passe' => 'required|string|min:8|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/',
             // photo_profil est nullable donc non obligatoire
             // statut a une valeur par défaut donc non obligatoire
         ], [
