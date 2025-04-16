@@ -5,27 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Publication extends Model
+class Like extends Model
 {
     use HasFactory;
 
-    protected $table = 'publications';
-
     protected $fillable = [
         'utilisateur_id',
-        'likes',
-        'description',
-        'contenu',
-        'media_url',
+        'publication_id'
     ];
 
     public function utilisateur()
     {
         return $this->belongsTo(Utilisateur::class);
     }
-    
-    public function likes()
+
+    public function publication()
     {
-        return $this->hasMany(Like::class);
+        return $this->belongsTo(Publication::class);
     }
 }

@@ -30,6 +30,7 @@ class UserController extends Controller
             'email' => 'sometimes|email|unique:utilisateurs,email,' . $id,
             'date_de_naissance' => 'sometimes|date',
             'photo_profil' => 'nullable|url',
+            'genre' => 'required|in:Homme,Femme',
         ]);
 
         $utilisateur->update($validated);

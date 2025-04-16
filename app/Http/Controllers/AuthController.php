@@ -19,13 +19,22 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|unique:utilisateurs,email',
             'nomUtilisateur' => 'required|string|max:255|unique:utilisateurs,nomUtilisateur',
-            'date_de_naissance' => 'required|date|before:today', // Validation de date
-            'mot_de_passe' => 'required|string|min:8|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/',
+            'date_de_naissance' => 'required|date|before:-18 years', // Validation de date
+            'genre' => 'required|in:Homme,Femme',
+            'mot_de_passe' => 'required|string|min:8|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/',
             // photo_profil est nullable donc non obligatoire
             // statut a une valeur par défaut donc non obligatoire
         ], [
+            'nomUtilisateur.unique' => 'Ce nom d\'utilisateur est déjà pris. Veuillez en choisir un autre.',
+            'nomUtilisateur.required' => 'Le nom d\'utilisateur est obligatoire.',
+            'email.unique' => 'Cet email a déjà un compte.',
+            'email.required' => 'L\'email est obligatoire.',
             'mot_de_passe.regex' => 'Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial',
-            'date_de_naissance.before' => 'La date de naissance doit être antérieure à aujourd\'hui'
+            'mot_de_passe.required' => 'Le mot de passe est obligatoire.',
+            'date_de_naissance.before' => 'Vous devez avoir au moins 18 ans pour vous inscrire',
+            'date_de_naissance.required' => 'La date de naissance est obligatoire.',
+            'genre.in' => 'Le genre doit être soit Homme soit Femme.',
+            'genre.required' => 'Le genre est obligatoire.',
         ]);
     
         if ($validator->fails()) {
@@ -39,6 +48,7 @@ class AuthController extends Controller
             'email' => $request->email,
             'nomUtilisateur' => $request->nomUtilisateur,
             'date_de_naissance' => $request->date_de_naissance,
+            'genre' => $request->genre,
             'mot_de_passe' => Hash::make($request->mot_de_passe),
             // photo_profil peut être ajouté plus tard
             // statut prendra la valeur par défaut 'offline'

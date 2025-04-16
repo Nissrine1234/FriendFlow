@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Publication;
+use App\Models\Like;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -70,56 +71,40 @@ class PostController extends Controller
 
         return response()->json(['message' => 'Publication supprimée']);
     }
-
     public function like($id)
     {
-        $publication = Publication::findOrFail($id);
-        $userId = Auth::id();
-
-        // Vérifier si l'utilisateur a déjà liké la publication
-        $sessionKey = "liked_{$userId}_{$id}";
-        if (session($sessionKey)) {
-            // Unlike
-            $publication->likes = max(0, $publication->likes - 1);
-            session()->forget($sessionKey);
-        } else {
-            // Like
-            $publication->likes += 1;
-            session([$sessionKey => true]);
+        $user = Auth::user();
+        
+        // Vérifie si la publication existe
+        $publication = Publication::find($id);
+        if (!$publication) {
+            return response()->json(['message' => 'Publication non trouvée'], 404);
         }
-
-        $publication->save();
-
-        return response()->json(['likes' => $publication->likes]);
+    
+        // Vérifie si l'utilisateur a déjà liké cette publication
+        $like = Like::where('utilisateur_id', $user->id)
+                    ->where('publication_id', $id)
+                    ->first();
+    
+        if ($like) {
+            // Si oui, on enlève le like (unlike)
+            $like->delete();
+            return response()->json([
+                'message' => 'Like retiré.',
+                'liked' => false,
+                'likes_count' => $publication->likes()->count()
+            ]);
+        } else {
+            // Sinon, on ajoute un nouveau like
+            Like::create([
+                'utilisateur_id' => $user->id,
+                'publication_id' => $id,
+            ]);
+            return response()->json([
+                'message' => 'Like ajouté.',
+                'liked' => true,
+                'likes_count' => $publication->likes()->count()
+            ]);
+        }
     }
-//     public function like($id)
-// {
-//     $publication = Publication::findOrFail($id);
-
-//     $userId = Auth::id();
-
-//     // Si l'utilisateur a déjà liké → unlike
-//     if ($publication->liked_by && in_array($userId, $publication->liked_by)) {
-//         $publication->liked_by = array_filter($publication->liked_by, function ($id) use ($userId) {
-//             return $id != $userId;
-//         });
-//         $publication->likes--;
-//     } else {
-//         // Sinon, il like
-//         $publication->liked_by = array_merge($publication->liked_by ?? [], [$userId]);
-//         $publication->likes++;
-//     }
-
-//     $publication->save();
-
-//     return response()->json([
-//         'likes' => $publication->likes,
-//         'liked_by' => $publication->liked_by
-//     ]);
-// }
-
-
-
-
-
 }
