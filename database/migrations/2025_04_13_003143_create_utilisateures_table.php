@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->date('date_de_naissance');
             $table->string('mot_de_passe');
+            $table->enum('genre',['Femme','Homme'])->default('Homme');
             $table->string('photo_profil')->nullable();
             $table->enum('statut', ['online', 'offline'])->default('offline');
             $table->timestamps();
