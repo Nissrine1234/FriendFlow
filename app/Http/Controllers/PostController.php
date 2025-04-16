@@ -11,7 +11,7 @@ class PostController extends Controller
 {
     public function index()
     {
-        $publications =Publication::with(['utilisateur'])->withCount('likes')->latest()->get();
+        $publications =Publication::with(['utilisateur'])->latest()->get();
         return response()->json($publications);
     }
 
@@ -83,27 +83,37 @@ class PostController extends Controller
                     ->first();
     
         if ($like) {
+            // Supprimer le like
             $like->delete();
+            
+            // Décrémenter le compteur (en s'assurant qu'il ne passe pas en négatif)
+            if ($publication->likes > 0) {
+                $publication->decrement('likes');
+            }
+            
             $message = 'Like retiré';
             $liked = false;
         } else {
+            // Créer un nouveau like
             Like::create([
                 'utilisateur_id' => $user->id,
                 'publication_id' => $id,
             ]);
+            
+            // Incrémenter le compteur
+            $publication->increment('likes');
+            
             $message = 'Like ajouté';
             $liked = true;
         }
     
-        // Mettre à jour le compteur en comptant réellement les likes
-        $likesCount = Like::where('publication_id', $id)->count();
-        $publication->likes = $likesCount;
-        $publication->save();
+        // Recharger la publication pour obtenir la valeur mise à jour
+        $publication = $publication->fresh();
     
         return response()->json([
             'message' => $message,
             'liked' => $liked,
-            'likes_count' => $publication->likes
+            'total_likes' => $publication->likes
         ]);
     }
 }
