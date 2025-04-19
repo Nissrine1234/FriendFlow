@@ -53,10 +53,13 @@ class AuthController extends Controller
             // photo_profil peut être ajouté plus tard
             // statut prendra la valeur par défaut 'offline'
         ]);
-    
+        
+        $token = $user->createToken('auth_token')->plainTextToken;
+
         return response()->json([
             'message' => 'Inscription réussie',
-            'user' => $user
+            'user' => $user->makeHidden(['mot_de_passe', 'created_at', 'updated_at']),
+            'token' => $token
         ], 201);
     }
 /**
