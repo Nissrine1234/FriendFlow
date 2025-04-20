@@ -51,4 +51,26 @@ class Utilisateur extends Authenticatable
         return $this->belongsToMany(Publication::class, 'likes', 'utilisateur_id', 'publication_id');
     }
 
+    public function amisDemandesEnvoyees()
+    {
+        return $this->hasMany(Ami::class, 'utilisateur_1_id');
+    }
+
+    public function amisDemandesRecues()
+    {
+        return $this->hasMany(Ami::class, 'utilisateur_2_id');
+    }
+
+    // Pour obtenir tous les amis (acceptés)
+    public function amis()
+    {
+        return $this->belongsToMany(User::class, 'amis', 'utilisateur_1_id', 'utilisateur_2_id')
+                    ->wherePivot('statut', 'accepte')
+                    ->withTimestamps()
+                    ->union(
+                        $this->belongsToMany(User::class, 'amis', 'utilisateur_2_id', 'utilisateur_1_id')
+                            ->wherePivot('statut', 'accepte')
+                            ->withTimestamps()
+                    );
+    }
 }
