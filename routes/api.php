@@ -31,4 +31,10 @@ Route::prefix('friendflow')->group(function(){
         Route::get('/{id}', [UserController::class, 'show']);
         Route::put('/{id}', [UserController::class, 'update']);
     });
+    
+    Route::prefix('friends')->middleware('auth:sanctum')->group(function () {
+        Route::get('/', [FriendController::class, 'getAmis']);
+        Route::delete('//{id}', [FriendController::class, 'supprimerAmi']);
+        Route::get('/est-ami/{id}', [FriendController::class, 'estAmi']);
+    });
 });

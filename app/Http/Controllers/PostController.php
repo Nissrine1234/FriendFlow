@@ -11,19 +11,21 @@ class PostController extends Controller
 {
     public function index()
     {
-        $publications =Publication::with(['utilisateur'])->latest()->get();
+        $publications = Publication::with(['utilisateur', 'likes'])->get();
+    
         return response()->json($publications);
     }
+    
 
 
     public function store(Request $request)
     {
         $request->validate([
-            'description' => 'required|string',
-            'contenu' => 'required|string',
-            'media_url' => 'required|url',
+            'description' => 'nullable|string',
+            'contenu' => 'required_without:media_url|string|nullable',
+            'media_url' => 'required_without:contenu|url|nullable',
         ]);
-
+    
         $publication = Publication::create([
             'utilisateur_id' => Auth::id(),
             'likes' => 0,
@@ -31,9 +33,10 @@ class PostController extends Controller
             'contenu' => $request->contenu,
             'media_url' => $request->media_url,
         ]);
-
+    
         return response()->json($publication, 201);
     }
+    
 
     public function update(Request $request, $id)
     {
@@ -73,47 +76,42 @@ class PostController extends Controller
     }
 
     
-    public function like($id)
-    {
-        $user = Auth::user();
-        $publication = Publication::findOrFail($id);
-    
-        $like = Like::where('utilisateur_id', $user->id)
-                    ->where('publication_id', $id)
-                    ->first();
-    
-        if ($like) {
-            // Supprimer le like
-            $like->delete();
-            
-            // Décrémenter le compteur (en s'assurant qu'il ne passe pas en négatif)
-            if ($publication->likes > 0) {
-                $publication->decrement('likes');
+        public function like($id)
+        {
+            $user = Auth::user();
+            $publication = Publication::findOrFail($id);
+        
+            $like = Like::where('utilisateur_id', $user->id)
+                        ->where('publication_id', $id)
+                        ->first();
+        
+            if ($like) {
+                $like->delete();
+        
+                // Met à jour le compteur manuellement
+                $publication->likes = max(0, $publication->likes - 1);
+                $publication->save();
+        
+                $message = 'Like retiré';
+                $liked = false;
+            } else {
+                Like::create([
+                    'utilisateur_id' => $user->id,
+                    'publication_id' => $id,
+                ]);
+        
+                $publication->likes += 1;
+                $publication->save();
+        
+                $message = 'Like ajouté';
+                $liked = true;
             }
-            
-            $message = 'Like retiré';
-            $liked = false;
-        } else {
-            // Créer un nouveau like
-            Like::create([
-                'utilisateur_id' => $user->id,
-                'publication_id' => $id,
+        
+            return response()->json([
+                'message' => $message,
+                'liked' => $liked,
+                'total_likes' => $publication->likes
             ]);
-            
-            // Incrémenter le compteur
-            $publication->increment('likes');
-            
-            $message = 'Like ajouté';
-            $liked = true;
         }
-    
-        // Recharger la publication pour obtenir la valeur mise à jour
-        $publication = $publication->fresh();
-    
-        return response()->json([
-            'message' => $message,
-            'liked' => $liked,
-            'total_likes' => $publication->likes
-        ]);
-    }
+        
 }
