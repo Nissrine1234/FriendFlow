@@ -26,7 +26,11 @@ class Publication extends Model
     // Dans Publication.php
     public function likes()
     {
+<<<<<<< HEAD
         return $this->hasMany(Like::class, 'publication_id');
+=======
+        return $this->hasMany(Like::class , 'publication_id');
+>>>>>>> 1f830f42d59de055c17f263762691030817d283f
     }
 
     public function utilisateurs_ayant_aime()
