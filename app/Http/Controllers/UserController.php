@@ -48,6 +48,34 @@ class UserController extends Controller
         return response()->json($resultats);
     }
 
+    public function uploadProfile(Request $request, $id)
+    {
+        $user = Utilisateur::findOrFail($id);
+
+        $request->validate([
+            'photo_profil' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        if ($request->hasFile('photo_profil')) {
+            $file = $request->file('photo_profil');
+            
+            // Génère un nom de fichier propre
+            $filename = 'profile_'.$user->id.'_'.time().'.'.$file->getClientOriginalExtension();
+            
+            // Supprime les caractères problématiques
+            $cleanFilename = preg_replace('/[^A-Za-z0-9\-._]/', '', $filename);
+            
+            // Stocke le fichier
+            $path = $file->storeAs('profiles', $cleanFilename, 'public');
+            
+            // Met à jour le chemin dans la base de données
+            $user->photo_profil = '/storage/'.$path;
+            $user->save();
+        }
+
+        return response()->json($user);
+    }
+
 
 
 }
