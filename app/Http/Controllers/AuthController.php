@@ -22,7 +22,7 @@ class AuthController extends Controller
             'date_de_naissance' => 'required|date|before:-18 years', // Validation de date
             'genre' => 'required|in:Homme,Femme',
             'mot_de_passe' => 'required|string|min:8|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/',
-            // photo_profil est nullable donc non obligatoire
+            'photo_profil' =>'nullable|string',
             // statut a une valeur par défaut donc non obligatoire
         ], [
             'nomUtilisateur.unique' => 'Ce nom d\'utilisateur est déjà pris. Veuillez en choisir un autre.',
@@ -43,14 +43,21 @@ class AuthController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-    
+
+        $photoProfil = $request->photo_profil ?? 
+        ($request->genre === 'Homme' 
+            ? '/icons/profile grand male gris.png' 
+            : '/icons/profile grand female gris.png');
+        
         $user = Utilisateur::create([
             'email' => $request->email,
             'nomUtilisateur' => $request->nomUtilisateur,
             'date_de_naissance' => $request->date_de_naissance,
             'genre' => $request->genre,
             'mot_de_passe' => Hash::make($request->mot_de_passe),
-            // photo_profil peut être ajouté plus tard
+            'photo_profil' => $photoProfil,
+            'statut' => 'online' 
+
             // statut prendra la valeur par défaut 'offline'
         ]);
         
@@ -100,6 +107,9 @@ public function login(Request $request)
         // Crée un nouveau token
         $token = $user->createToken('auth_token')->plainTextToken;
         
+        // Met à jour le statut
+        $user->update(['statut' => 'online']);
+        
         return response()->json([
             'message' => 'Login successful',
             'token' => $token,
@@ -125,7 +135,12 @@ public function login(Request $request)
      */
     public function logout(Request $request)
     {
+
+        // Met à jour le statut avant de supprimer le token
+        $request->user()->update(['statut' => 'offline']);   
+        
         $request->user()->currentAccessToken()->delete();
+        
         
         return response()->json([
             'message' => 'Déconnexion réussie'

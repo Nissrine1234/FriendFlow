@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Publication;
 use App\Models\Like;
+use App\Models\Ami;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -11,7 +12,30 @@ class PostController extends Controller
 {
     public function index()
     {
-        $publications =Publication::with(['utilisateur'])->latest()->get();
+        // 1. On récupère l'utilisateur connecté
+        $user = Auth::user();
+        
+        // 2. On récupère les IDs de tous ses amis
+        $amisIds = Ami::where('utilisateur_1_id', $user->id)
+            ->orWhere('utilisateur_2_id', $user->id)
+            ->get()
+            ->map(function ($ami) use ($user) {
+                // Pour chaque relation d'amitié, on identifie qui est l'ami
+                return $ami->utilisateur_1_id == $user->id 
+                    ? $ami->utilisateur_2_id  // Si l'user est utilisateur_1, l'ami est utilisateur_2
+                    : $ami->utilisateur_1_id; // Sinon l'ami est utilisateur_1
+            });
+        
+        // 3. On ajoute l'ID de l'utilisateur courant pour qu'il voie aussi ses propres posts
+        $amisIds->push($user->id);
+        
+        // 4. On récupère les publications avec les mêmes relations qu'avant
+        $publications = Publication::with(['utilisateur', 'likes.utilisateur'])
+            ->whereIn('utilisateur_id', $amisIds) // Seule ligne modifiée par rapport à ta version originale
+            ->latest()
+            ->get();
+            
+        // 5. On retourne le résultat comme avant
         return response()->json($publications);
     }
 
@@ -19,11 +43,11 @@ class PostController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'description' => 'required|string',
-            'contenu' => 'required|string',
-            'media_url' => 'required|url',
+            'description' => 'nullable|string',
+            'contenu' => 'required_without:media_url|string|nullable',
+            'media_url' => 'required_without:contenu|url|nullable',
         ]);
-
+    
         $publication = Publication::create([
             'utilisateur_id' => Auth::id(),
             'likes' => 0,
@@ -31,9 +55,10 @@ class PostController extends Controller
             'contenu' => $request->contenu,
             'media_url' => $request->media_url,
         ]);
-
+    
         return response()->json($publication, 201);
     }
+    
 
     public function update(Request $request, $id)
     {
@@ -76,44 +101,42 @@ class PostController extends Controller
     public function like($id)
     {
         $user = Auth::user();
+        $userId = $user->id;
         $publication = Publication::findOrFail($id);
     
-        $like = Like::where('utilisateur_id', $user->id)
+        $like = Like::where('utilisateur_id', $userId)
                     ->where('publication_id', $id)
                     ->first();
     
         if ($like) {
-            // Supprimer le like
             $like->delete();
-            
-            // Décrémenter le compteur (en s'assurant qu'il ne passe pas en négatif)
-            if ($publication->likes > 0) {
-                $publication->decrement('likes');
-            }
-            
             $message = 'Like retiré';
             $liked = false;
         } else {
-            // Créer un nouveau like
             Like::create([
-                'utilisateur_id' => $user->id,
+                'utilisateur_id' => $userId,
                 'publication_id' => $id,
             ]);
-            
-            // Incrémenter le compteur
-            $publication->increment('likes');
-            
             $message = 'Like ajouté';
             $liked = true;
         }
     
-        // Recharger la publication pour obtenir la valeur mise à jour
-        $publication = $publication->fresh();
-    
+        // Mettre à jour le compteur dans la table publications
+        $totalLikes = Like::where('publication_id', $id)->count();
+        $publication->likes = $totalLikes;
+        $publication->save();
+        
+        // Récupérer la publication mise à jour avec toutes les relations
+        $updatedPublication = Publication::with(['utilisateur', 'likes'])->findOrFail($id);
+        
+        // Ajouter explicitement is_liked à la publication
+        $updatedPublication->is_liked = $liked;
+        
         return response()->json([
             'message' => $message,
             'liked' => $liked,
-            'total_likes' => $publication->likes
+            'publication' => $updatedPublication
         ]);
     }
+        
 }

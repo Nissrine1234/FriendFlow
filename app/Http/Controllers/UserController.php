@@ -16,7 +16,12 @@ class UserController extends Controller
         $utilisateur = Utilisateur::findOrFail($id);
         return response()->json($utilisateur);
     }
-    public function update(Request $request, $id)
+    public function getCurrentUser()
+    {
+        $user = auth()->user();
+        return response()->json($user);
+    }
+        public function update(Request $request, $id)
     {
         $utilisateur = Utilisateur::findOrFail($id);
 

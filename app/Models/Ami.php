@@ -24,12 +24,12 @@ class Ami extends Model
 
     public function utilisateur1()
     {
-        return $this->belongsTo(User::class, 'utilisateur_1_id');
+        return $this->belongsTo(Utilisateur::class, 'utilisateur_1_id');
     }
 
     public function utilisateur2()
     {
-        return $this->belongsTo(User::class, 'utilisateur_2_id');
+        return $this->belongsTo(Utilisateur::class, 'utilisateur_2_id');
     }
 
     public static function areFriends($user1Id, $user2Id)

@@ -25,7 +25,12 @@ class FriendController extends Controller
 
         $amis = $amis_1->merge($amis_2);
 
-        return response()->json($amis);
+        return response()->json($amis->map(function ($ami) {
+            return [
+                'id' => $ami->id,
+                'nomUtilisateur' => $ami->nomUtilisateur,
+                'photo_profil' => $ami->photo_profil,
+            ];}));
     }
 
     // ✅ Supprimer un ami

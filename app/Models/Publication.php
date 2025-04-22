@@ -23,9 +23,10 @@ class Publication extends Model
     {
         return $this->belongsTo(Utilisateur::class);
     }
+    // Dans Publication.php
     public function likes()
     {
-        return $this->hasMany(Like::class);
+        return $this->hasMany(Like::class, 'publication_id');
     }
 
     public function utilisateurs_ayant_aime()
