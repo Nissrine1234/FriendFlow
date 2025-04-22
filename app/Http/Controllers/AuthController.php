@@ -56,6 +56,8 @@ class AuthController extends Controller
             'genre' => $request->genre,
             'mot_de_passe' => Hash::make($request->mot_de_passe),
             'photo_profil' => $photoProfil,
+            'statut' => 'online' 
+
             // statut prendra la valeur par défaut 'offline'
         ]);
         
@@ -105,6 +107,9 @@ public function login(Request $request)
         // Crée un nouveau token
         $token = $user->createToken('auth_token')->plainTextToken;
         
+        // Met à jour le statut
+        $user->update(['statut' => 'online']);
+        
         return response()->json([
             'message' => 'Login successful',
             'token' => $token,
@@ -130,7 +135,12 @@ public function login(Request $request)
      */
     public function logout(Request $request)
     {
+
+        // Met à jour le statut avant de supprimer le token
+        $request->user()->update(['statut' => 'offline']);   
+        
         $request->user()->currentAccessToken()->delete();
+        
         
         return response()->json([
             'message' => 'Déconnexion réussie'
