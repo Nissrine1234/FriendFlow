@@ -41,5 +41,6 @@ Route::prefix('friendflow')->group(function(){
         Route::delete('/{id}', [FriendController::class, 'supprimerAmi']);
         Route::get('/est-ami/{id}', [FriendController::class, 'estAmi']);
 
+        
     });
 });
