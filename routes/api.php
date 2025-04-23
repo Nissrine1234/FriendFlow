@@ -33,11 +33,12 @@ Route::prefix('friendflow')->group(function(){
         Route::get('/search', [UserController::class, 'search']);
         Route::get('/{id}', [UserController::class, 'show']);
         Route::put('/{id}', [UserController::class, 'update']);
+        Route::post('/{id}/uploadProfile', [UserController::class, 'uploadProfile']);
     });
     
     Route::prefix('friends')->middleware('auth:sanctum')->group(function () {
         Route::get('/', [FriendController::class, 'getAmis']);
-        Route::delete('//{id}', [FriendController::class, 'supprimerAmi']);
+        Route::delete('/{id}', [FriendController::class, 'supprimerAmi']);
         Route::get('/est-ami/{id}', [FriendController::class, 'estAmi']);
 
     });
