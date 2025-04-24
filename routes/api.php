@@ -29,7 +29,7 @@ Route::prefix('friendflow')->group(function(){
 
     Route::prefix('users')->middleware('auth:sanctum')->group(function() {
         Route::get('/', [UserController::class, 'index']);
-        Route::get('/current', [UserController::class, 'getCurrentUser']);
+        // Route::get('/current', [UserController::class, 'getCurrentUser']);
         Route::get('/search', [UserController::class, 'search']);
         Route::get('/{id}', [UserController::class, 'show']);
         Route::put('/{id}', [UserController::class, 'update']);
