@@ -52,5 +52,6 @@ Route::prefix('friendflow')->group(function(){
         Route::post('/', [InvitationController::class, 'sendInvitation']); // Envoyer une invitation
         Route::post('/{id}/accept', [InvitationController::class, 'acceptInvitation']); // Accepter une invitation
         Route::post('/{id}/reject', [InvitationController::class, 'rejectInvitation']); // Refuser une invitation
+
     });
 });
