@@ -151,4 +151,29 @@ class InvitationController extends Controller
             'invitation' => $invitation->load('destinataire')
         ], 201);
     }
+    /**
+ * Annuler une invitation envoyée
+ */
+public function cancelInvitation($id)
+{
+    $user = Auth::user();
+    $invitation = Invitation::findOrFail($id);
+
+    // Vérifier que l'utilisateur est bien l'expéditeur
+    if ($invitation->expediteur_id !== $user->id) {
+        return response()->json(['message' => 'Vous ne pouvez annuler que vos propres invitations'], 403);
+    }
+
+    // Vérifier que l'invitation est toujours en attente
+    if ($invitation->statut !== 'en_attente') {
+        return response()->json(['message' => 'Cette invitation a déjà été traitée'], 400);
+    }
+
+    // Supprimer l'invitation
+    $invitation->delete();
+
+    return response()->json([
+        'message' => 'Invitation annulée avec succès'
+    ]);
+}
 }

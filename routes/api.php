@@ -50,8 +50,10 @@ Route::prefix('friendflow')->group(function(){
         Route::get('/', [InvitationController::class, 'getInvitations']); // Liste des invitations reçues en attente
         Route::get('/history', [InvitationController::class, 'getInvitationsHistory']); // Historique des invitations
         Route::post('/', [InvitationController::class, 'sendInvitation']); // Envoyer une invitation
+        Route::delete('/{id}/cancel', [InvitationController::class, 'cancelInvitation']);// Annuler une invitation
         Route::post('/{id}/accept', [InvitationController::class, 'acceptInvitation']); // Accepter une invitation
         Route::post('/{id}/reject', [InvitationController::class, 'rejectInvitation']); // Refuser une invitation
+
 
     });
 });
