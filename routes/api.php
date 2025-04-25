@@ -6,7 +6,9 @@ use App\Http\Controllers\{
     AuthController,
     UserController,
     PostController,
-    FriendController
+    FriendController,
+    InvitationController
+
 };
 
 Route::prefix('friendflow')->group(function(){
@@ -29,16 +31,26 @@ Route::prefix('friendflow')->group(function(){
 
     Route::prefix('users')->middleware('auth:sanctum')->group(function() {
         Route::get('/', [UserController::class, 'index']);
-        Route::get('/current', [UserController::class, 'getCurrentUser']);
+        // Route::get('/current', [UserController::class, 'getCurrentUser']);
         Route::get('/search', [UserController::class, 'search']);
         Route::get('/{id}', [UserController::class, 'show']);
         Route::put('/{id}', [UserController::class, 'update']);
+        Route::post('/{id}/uploadProfile', [UserController::class, 'uploadProfile']);
     });
     
     Route::prefix('friends')->middleware('auth:sanctum')->group(function () {
         Route::get('/', [FriendController::class, 'getAmis']);
-        Route::delete('//{id}', [FriendController::class, 'supprimerAmi']);
+        Route::delete('/{id}', [FriendController::class, 'supprimerAmi']);
         Route::get('/est-ami/{id}', [FriendController::class, 'estAmi']);
 
+        
+    });
+
+    Route::prefix('invitations')->middleware('auth:sanctum')->group(function () {
+        Route::get('/', [InvitationController::class, 'getInvitations']); // Liste des invitations reçues en attente
+        Route::get('/history', [InvitationController::class, 'getInvitationsHistory']); // Historique des invitations
+        Route::post('/', [InvitationController::class, 'sendInvitation']); // Envoyer une invitation
+        Route::post('/{id}/accept', [InvitationController::class, 'acceptInvitation']); // Accepter une invitation
+        Route::post('/{id}/reject', [InvitationController::class, 'rejectInvitation']); // Refuser une invitation
     });
 });
