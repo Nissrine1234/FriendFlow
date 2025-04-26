@@ -45,21 +45,37 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $utilisateur = Utilisateur::findOrFail($id);
-
+    
         if (auth()->id() !== $utilisateur->id) {
             return response()->json(['message' => 'Non autorisé.'], 403);
         }
-
+    
         $validated = $request->validate([
             'nomUtilisateur' => 'sometimes|string|max:255|unique:utilisateurs,nomUtilisateur,'.$id,
             'email' => 'sometimes|email|unique:utilisateurs,email,'.$id,
             'date_de_naissance' => 'sometimes|date',
-            'photo_profil' => 'nullable|string',
+            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'genre' => 'sometimes|in:Homme,Femme',
         ]);
-
+    
+        // Gestion de l'upload de l'image
+        if ($request->hasFile('photo_profil')) {
+            // Supprimer l'ancienne photo si elle existe
+            if ($utilisateur->photo_profil) {
+                $oldPath = str_replace('/storage/', '', $utilisateur->photo_profil);
+                Storage::disk('public')->delete($oldPath);
+            }
+    
+            $file = $request->file('photo_profil');
+            $filename = 'profile_'.$utilisateur->id.'_'.time().'.'.$file->getClientOriginalExtension();
+            $cleanFilename = preg_replace('/[^A-Za-z0-9\-._]/', '', $filename);
+            $path = $file->storeAs('profiles', $cleanFilename, 'public');
+            
+            $validated['photo_profil'] = '/storage/'.$path;
+        }
+    
         $utilisateur->update($validated);
-
+    
         return response()->json([
             'message' => 'Profil mis à jour avec succès.',
             'utilisateur' => $utilisateur->only([
@@ -67,7 +83,6 @@ class UserController extends Controller
             ])
         ]);
     }
-
     // ✅ Recherche (actuel)
     public function search(Request $request)
     {
