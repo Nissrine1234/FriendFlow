@@ -32,8 +32,12 @@ Route::prefix('friendflow')->group(function(){
         Route::get('/current', [UserController::class, 'getCurrentUser']);
         Route::get('/search', [UserController::class, 'search']);
         Route::get('/{id}', [UserController::class, 'show']);
-        Route::put('/{id}', [UserController::class, 'update']);
+        Route::get('/by-username/{username}', [UserController::class, 'showByUsername']);
+        Route::post('/{id}', [UserController::class, 'update']);
         Route::post('/{id}/uploadProfile', [UserController::class, 'uploadProfile']);
+        Route::prefix('{username}/friends')->group(function () {
+            Route::get('/', [FriendController::class, 'getUserFriends']); // Nouvelle route
+        });
     });
     
     Route::prefix('friends')->middleware('auth:sanctum')->group(function () {
