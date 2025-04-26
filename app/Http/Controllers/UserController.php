@@ -40,12 +40,6 @@ class UserController extends Controller
     return response()->json($utilisateur);
 }
 
-    // ✅ Utilisateur courant (actuel)
-    public function getCurrentUser()
-    {
-        $user = auth()->user();
-        return response()->json($user);
-    }
 
     // ✅ Mise à jour (actuel)
     public function update(Request $request, $id)
