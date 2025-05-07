@@ -43,6 +43,8 @@ class Publication extends Model
         return $this->belongsToMany(Utilisateur::class, 'likes', 'publication_id', 'utilisateur_id');
     }
 
+    
+
     public function getTempsDepuisCreationAttribute()
     {
         $created = Carbon::parse($this->created_at);

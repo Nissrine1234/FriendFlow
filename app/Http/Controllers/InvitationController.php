@@ -65,14 +65,25 @@ class InvitationController extends Controller
             return response()->json(['message' => 'Cette invitation a déjà été traitée'], 400);
         }
 
+        // Vérifier si les utilisateurs sont déjà amis
+        $dejaAmis = Ami::where(function($query) use ($user, $invitation) {
+            $query->where('utilisateur_1_id', $invitation->expediteur_id)
+                ->where('utilisateur_2_id', $invitation->destinataire_id);
+        })->orWhere(function($query) use ($user, $invitation) {
+            $query->where('utilisateur_1_id', $invitation->destinataire_id)
+                ->where('utilisateur_2_id', $invitation->expediteur_id);
+        })->exists();
+
         // Mise à jour de l'invitation
         $invitation->update(['statut' => 'acceptee']);
 
-        // Création de la relation d'amitié
-        Ami::create([
-            'utilisateur_1_id' => $invitation->expediteur_id,
-            'utilisateur_2_id' => $invitation->destinataire_id
-        ]);
+        // Création de la relation d'amitié seulement si elle n'existe pas déjà
+        if (!$dejaAmis) {
+            Ami::create([
+                'utilisateur_1_id' => $invitation->expediteur_id,
+                'utilisateur_2_id' => $invitation->destinataire_id
+            ]);
+        }
 
         return response()->json([
             'message' => 'Invitation acceptée avec succès',
@@ -114,18 +125,31 @@ class InvitationController extends Controller
     {
         $user = Auth::user();
         $destinataireId = $request->destinataire_id;
-
+    
         // Vérification que l'utilisateur ne s'envoie pas une invitation à lui-même
         if ($user->id == $destinataireId) {
             return response()->json(['message' => 'Vous ne pouvez pas vous envoyer une invitation à vous-même'], 400);
         }
-
+    
         // Vérification que l'utilisateur existe
         $destinataire = Utilisateur::find($destinataireId);
         if (!$destinataire) {
             return response()->json(['message' => 'Utilisateur non trouvé'], 404);
         }
-
+    
+        // Vérifier si les utilisateurs sont déjà amis
+        $dejaAmis = Ami::where(function($query) use ($user, $destinataireId) {
+            $query->where('utilisateur_1_id', $user->id)
+                  ->where('utilisateur_2_id', $destinataireId);
+        })->orWhere(function($query) use ($user, $destinataireId) {
+            $query->where('utilisateur_1_id', $destinataireId)
+                  ->where('utilisateur_2_id', $user->id);
+        })->exists();
+    
+        if ($dejaAmis) {
+            return response()->json(['message' => 'Vous êtes déjà amis avec cet utilisateur'], 400);
+        }
+    
         // Vérification qu'une invitation n'existe pas déjà
         $existingInvitation = Invitation::where(function($query) use ($user, $destinataireId) {
             $query->where('expediteur_id', $user->id)
@@ -133,19 +157,19 @@ class InvitationController extends Controller
         })->orWhere(function($query) use ($user, $destinataireId) {
             $query->where('expediteur_id', $destinataireId)
                   ->where('destinataire_id', $user->id);
-        })->first();
-
+        })->where('statut', 'en_attente')->first();
+    
         if ($existingInvitation) {
             return response()->json(['message' => 'Une invitation existe déjà entre ces utilisateurs'], 400);
         }
-
+    
         // Création de l'invitation
         $invitation = Invitation::create([
             'expediteur_id' => $user->id,
             'destinataire_id' => $destinataireId,
             'statut' => 'en_attente'
         ]);
-
+    
         return response()->json([
             'message' => 'Invitation envoyée avec succès',
             'invitation' => $invitation->load('destinataire')
