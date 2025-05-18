@@ -11,6 +11,15 @@ use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
+
+
+    // public function validateToken(Request $request)
+    // {
+    //     return response()->json([
+    //         'valid' => true,
+    //         'user' => $request->user()
+    //     ]);
+    // }
     /**
      * Inscription d'un nouvel utilisateur
      */

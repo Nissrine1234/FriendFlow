@@ -11,9 +11,15 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withCommands([
+        \App\Console\Commands\ListenRedisChannel::class, // Ajoutez cette ligne
+        // Ajoutez d'autres commandes ici si nécessaire
+    ])
     ->withMiddleware(function (Middleware $middleware) {
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
+
+    

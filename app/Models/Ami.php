@@ -14,7 +14,6 @@ class Ami extends Model
     protected $fillable = [
         'utilisateur_1_id',
         'utilisateur_2_id',
-        'statut'
     ];
 
     protected $casts = [

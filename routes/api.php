@@ -7,7 +7,8 @@ use App\Http\Controllers\{
     UserController,
     PostController,
     FriendController,
-    InvitationController
+    InvitationController,
+    MessageController
 
 };
 
@@ -60,4 +61,12 @@ Route::prefix('friendflow')->group(function(){
 
 
     });
+
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user(); // Retourne l'utilisateur authentifié
+});
+
+
+
+    
 });

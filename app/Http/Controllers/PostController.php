@@ -6,6 +6,7 @@ use App\Models\Publication;
 use App\Models\Like;
 use App\Models\Ami;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 
 class PostController extends Controller
@@ -39,22 +40,47 @@ class PostController extends Controller
         return response()->json($publications);
     }
 
-
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'description' => 'nullable|string',
-            'contenu' => 'required_without:media_url|string|nullable',
-            'media_url' => 'required_without:contenu|url|nullable',
+            'contenu' => 'nullable|string',
+            'media_url' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:2048', // Changé de media_url_url à media_url
         ]);
     
-        $publication = Publication::create([
+        // Vérification des champs fournis
+        $hasContenu = !empty($validated['contenu']);
+        $hasMedia = $request->hasFile('media_url'); // Vérifie si un fichier a été uploadé
+    
+        // Validation XOR (soit l'un, soit l'autre)
+        if (!$hasContenu && !$hasMedia) {
+            return response()->json([
+                'message' => 'Vous devez fournir soit du contenu, soit un média'
+            ], 422);
+        }
+    
+        if ($hasContenu && $hasMedia) {
+            return response()->json([
+                'message' => 'Vous ne pouvez pas publier à la fois du contenu et un média'
+            ], 422);
+        }
+    
+        $publicationData = [
             'utilisateur_id' => Auth::id(),
             'likes' => 0,
-            'description' => $request->description,
-            'contenu' => $request->contenu,
-            'media_url' => $request->media_url,
-        ]);
+            'description' => $validated['description'] ?? null,
+            'contenu' => $hasContenu ? $validated['contenu'] : null,
+        ];
+    
+        // Gestion de l'upload de fichier
+        if ($hasMedia) {
+            $path = $request->file('media_url')->store('publications', 'public');
+            $publicationData['media_url'] = Storage::url($path); // Stocke le chemin d'accès
+        } else {
+            $publicationData['media_url'] = null;
+        }
+    
+        $publication = Publication::create($publicationData);
     
         return response()->json($publication, 201);
     }
